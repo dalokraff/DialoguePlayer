@@ -73,6 +73,7 @@ mod:command("search_dialogue", "search for dialgoue by it's unlocalized dialogue
             end
         end
     end
+    mod.update_dialogue_menu = true
 end)
 
 mod:command("pause_sounds", "Pauses all currently playing sounds in the world", function()

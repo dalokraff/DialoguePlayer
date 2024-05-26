@@ -1,4 +1,5 @@
 local mod = get_mod("DialoguePlayer")
+local DPWidgetUtils = local_require("scripts/mods/DialoguePlayer/DP_widget_utils")
 local definitions = local_require("scripts/mods/DialoguePlayer/dialogue_player_definitions")
 local widget_definitions = definitions.widgets
 local scenegraph_definition = definitions.scenegraph_definition
@@ -50,6 +51,10 @@ function DialoguePlayerView:on_exit()
 	self.input_manager:device_unblock_all_services("mouse", 1)
 	self.input_manager:device_unblock_all_services("gamepad", 1)
 
+	self.widgets = {}
+	self.widgets_by_name = {}
+	self.widgets_to_animate = {}
+
 	ShowCursorStack.pop()
 end
 
@@ -84,6 +89,7 @@ DialoguePlayerView._create_ui_elements = function (self)
 	self._ui_scenegraph = UISceneGraph.init_scenegraph(scenegraph_definition)
 	local widgets = {}
 	local widgets_by_name = {}
+	self.widgets_to_animate = {}
 
 	for name, definition in pairs(widget_definitions) do
 		local widget = UIWidget.init(definition)
@@ -141,16 +147,22 @@ DialoguePlayerView._update_animations = function (self, dt)
 	local close_button = widgets_by_name.close_button
 
 	UIWidgetUtils.animate_default_button(close_button, dt)
+
+	for k,widget in pairs(self.widgets_to_animate) do
+		UIWidgetUtils.animate_default_button(widget, dt)
+	end
 end
 
 DialoguePlayerView._is_button_pressed = function (self, widget)
-    local content = widget.content
-    local hotspot = content.button_hotspot or content.hotspot
-	if hotspot ~= nil then
-		if hotspot.on_release then
-			hotspot.on_release = false
+    if widget then
+		local content = widget.content
+		local hotspot = content.button_hotspot or content.hotspot
+		if hotspot ~= nil then
+			if hotspot.on_release then
+				hotspot.on_release = false
 
-			return true
+				return true
+			end
 		end
 	end
 end
@@ -166,12 +178,22 @@ DialoguePlayerView._handle_input = function (self, dt, t)
 	local esc_pressed = self:input_service():get("toggle_menu")
     local widgets = self._widgets
 	local widgets_by_name = self._widgets_by_name
+	local filtered_dialogue_widgets = self.filtered_dialogue_widgets
 
     if self:_is_button_pressed(widgets_by_name["close_button"]) then
 		self:play_sound("Play_hud_select")
 		mod:handle_transition("close_dialogue_player_view")
 		return
     end
+
+	for dialogue_key,data in pairs (filtered_dialogue_widgets) do
+		local widget = widgets_by_name[dialogue_key]
+		if self:_is_button_pressed(widget) then
+			self:play_sound(dialogue_key)
+			return
+		end
+	end
+
 
     if esc_pressed then
 
@@ -181,48 +203,42 @@ DialoguePlayerView._handle_input = function (self, dt, t)
     end
 end
 
-local title_text_style = {
-	dynamic_height = false,
-	upper_case = true,
-	localize = false,
-	word_wrap = false,
-	font_size = 16,
-	vertical_alignment = "center",
-	horizontal_alignment = "center",
-	use_shadow = true,
-	dynamic_font_size = false,
-	font_type = "hell_shark_header",
-	text_color = Colors.get_color_table_with_alpha("font_title", 255),
-	offset = {
-		0,
-		-150,
-		2
-	}
-}
+local font_size = 16
 DialoguePlayerView.update_filtered_dialogue = function (self)
-	self:clear_filtered_dialogue()
+	if mod.update_dialogue_menu then
+		self:clear_filtered_dialogue()
 
-	local widgets = self._widgets
-	local widgets_by_name = self._widgets_by_name
+		local widgets = self._widgets
+		local widgets_by_name = self._widgets_by_name
+		local widgets_to_animate = self.widgets_to_animate
 
-	local filtered_dialogue_widgets = self.filtered_dialogue_widgets
+		local filtered_dialogue_widgets = self.filtered_dialogue_widgets
 
-	local text_offset = 0
-	for indx, dialogue_key in pairs(mod.found_dialogue) do
-		local text_style = table.clone(title_text_style)
-		text_style.offset[2] = text_offset
-		text_offset = text_offset - (title_text_style.font_size + 3)
-		local new_widget_def = UIWidgets.create_simple_text(indx.." : "..dialogue_key, "info_window_right_title_text", nil, nil, text_style)
+		local text_offset = 0
+		for indx, dialogue_key in pairs(mod.found_dialogue) do
+			local offset = {
+				0,
+				-25 + text_offset,
+				2
+			}
+			text_offset = text_offset - (font_size + 3)
+			-- local new_widget_def = UIWidgets.create_text_button("info_window_right_title_text", indx.." : "..dialogue_key, font_size, offset)
+			local new_widget_def = DPWidgetUtils.create_simple_window_button("info_window_right_title_text", nil, indx.." : "..dialogue_key, font_size, nil, nil, offset)
 
-		local widget = UIWidget.init(new_widget_def)
-		local num_widgets = #widgets
-		widgets[num_widgets + 1] = widget
-		widgets_by_name[dialogue_key] = widget
+			local widget = UIWidget.init(new_widget_def)
+			local num_widgets = #widgets
+			local num_widgets_to_animate = #widgets_to_animate
+			widgets[num_widgets + 1] = widget
+			widgets_by_name[dialogue_key] = widget
+			widgets_to_animate[num_widgets_to_animate + 1] = widget
 
-		filtered_dialogue_widgets[dialogue_key] = {
-			index = indx,
-			widget_num = num_widgets + 1
-		}
+			filtered_dialogue_widgets[dialogue_key] = {
+				index = indx,
+				widget_num = num_widgets + 1
+			}
+		end
+
+		mod.update_dialogue_menu = false
 	end
 
 end
