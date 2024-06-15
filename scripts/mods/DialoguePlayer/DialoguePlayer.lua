@@ -1,5 +1,6 @@
 local mod = get_mod("DialoguePlayer")
 local dialogue = {}
+local dialgoue_localized = {}
 local selected_dialogue = 0
 
 
@@ -8,6 +9,7 @@ mod.getAllDialogue = function()
     for key,value in pairs(DialogueLookup) do
         if string.match(key,"[a-zA-Z]") then
             table.insert( dialogue, key )
+            dialgoue_localized[key] = Localize(key)
         end
     end
 
@@ -59,7 +61,27 @@ mod.getAllDialogue()
 -- end)
 
 mod.found_dialogue = {}
-mod:command("search_dialogue", "search for dialgoue by it's unlocalized dialogue key", function(search_string, is_loaded_filter)
+mod:command("search_local", "search for dialgoue by it's unlocalized dialogue key", function(search_string, is_loaded_filter)
+    table.clear(mod.found_dialogue)
+    local counter = 0
+    for diag_key,local_diag in pairs(dialgoue_localized) do
+        if string.find(local_diag, search_string) then
+            local is_loaded = Wwise.has_event(diag_key)
+            if is_loaded_filter == nil then
+                mod:info(diag_key.." : "..local_diag)
+                mod.found_dialogue[counter] = diag_key
+                counter = counter + 1
+            elseif (tonumber(is_loaded_filter)~=0) == is_loaded then
+                mod:info(diag_key.." : "..local_diag)
+                mod.found_dialogue[counter] = diag_key
+                counter = counter + 1
+            end
+        end
+    end
+    mod.update_dialogue_menu = true
+end)
+
+mod:command("search_dialogue", "search for dialgoue by it's localized value", function(search_string, is_loaded_filter)
     table.clear(mod.found_dialogue)
     for idx,diag_key in ipairs(dialogue) do
         if string.find(diag_key, search_string) then

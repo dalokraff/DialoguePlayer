@@ -175,4 +175,419 @@ DPWidgetUtils.create_simple_window_button = function (scenegraph_id, size, text,
 	}
 end
 
+DPWidgetUtils.create_search_input_widget = function(scenegraph_id, size)
+	local frame_settings = UIFrameSettings.button_frame_01
+	local glow_settings = UIFrameSettings.frame_outer_glow_01
+	local glow_width = glow_settings.texture_sizes.horizontal[2]
+
+	return {
+		scenegraph_id = scenegraph_id,
+		offset = {
+			0,
+			0,
+			0,
+		},
+		element = {
+			passes = {
+				{
+					content_id = "hotspot",
+					pass_type = "hotspot",
+				},
+				{
+					pass_type = "texture",
+					style_id = "bg_texture",
+					texture_id = "bg_texture",
+				},
+				{
+					pass_type = "texture_frame",
+					style_id = "frame",
+					texture_id = "frame",
+				},
+				{
+					content_id = "details",
+					pass_type = "texture",
+					style_id = "detail_left",
+				},
+				{
+					content_id = "details",
+					pass_type = "texture_uv",
+					style_id = "detail_right",
+				},
+				{
+					pass_type = "texture_frame",
+					style_id = "glow",
+					texture_id = "glow",
+					content_change_function = function (content, style)
+						if content.input_active then
+							style.color[1] = 255
+						elseif content.hotspot.is_hover then
+							style.color[1] = 100
+						else
+							style.color[1] = 0
+						end
+					end,
+				},
+				{
+					pass_type = "text",
+					style_id = "search_placeholder",
+					text_id = "search_placeholder",
+					content_check_function = function (content)
+						return content.search_query == "" and not content.input_active
+					end,
+				},
+				{
+					pass_type = "text",
+					style_id = "search_query",
+					text_id = "search_query",
+					content_change_function = function (content, style)
+						if not content.input_active then
+							style.caret_color[1] = 0
+						else
+							style.caret_color[1] = 127 + 128 * math.sin(5 * Managers.time:time("ui"))
+						end
+					end,
+				},
+				{
+					content_id = "search_filters_hotspot",
+					pass_type = "hotspot",
+					style_id = "search_filters_hotspot",
+					content_check_function = function ()
+						return not Managers.input:is_device_active("gamepad")
+					end,
+					content_change_function = function (content, style)
+						local filters_active = content.parent.filters_active
+
+						if filters_active ~= content.filters_active then
+							content.filters_active = filters_active
+
+							if filters_active then
+								Colors.copy_to(style.parent.search_filters_glow.color, Colors.color_definitions.white)
+							else
+								Colors.copy_to(style.parent.search_filters_glow.color, Colors.color_definitions.font_title)
+							end
+						end
+
+						local alpha = 0
+
+						if content.is_hover then
+							alpha = 255
+						elseif content.filters_active then
+							alpha = 200
+						end
+
+						style.parent.search_filters_glow.color[1] = alpha
+					end,
+				},
+				{
+					pass_type = "texture",
+					style_id = "search_filters_bg",
+					texture_id = "search_filters_bg",
+				},
+				{
+					pass_type = "texture",
+					style_id = "search_filters_icon",
+					texture_id = "search_filters_icon",
+				},
+				{
+					pass_type = "texture",
+					style_id = "search_filters_glow",
+					texture_id = "search_filters_glow",
+				},
+				{
+					content_id = "clear_hotspot",
+					pass_type = "hotspot",
+					style_id = "clear_icon",
+				},
+				{
+					pass_type = "texture",
+					style_id = "clear_icon",
+					texture_id = "clear_icon",
+					content_check_function = function (content)
+						return content.search_query ~= ""
+					end,
+					content_change_function = function (content, style)
+						local clear_hotspot = content.clear_hotspot
+						local is_hover = clear_hotspot.is_hover
+
+						if is_hover ~= clear_hotspot.was_hover then
+							clear_hotspot.was_hover = is_hover
+
+							if is_hover then
+								Colors.copy_to(style.color, Colors.color_definitions.font_title)
+							else
+								Colors.copy_to(style.color, Colors.color_definitions.very_dark_gray)
+							end
+						end
+					end,
+				},
+			},
+		},
+		content = {
+			bg_texture = "search_bar_texture",
+			caret_index = 1,
+			clear_icon = "friends_icon_close",
+			input_active = false,
+			search_filters_bg = "search_filters_bg",
+			search_filters_glow = "search_filters_icon_glow",
+			search_filters_icon = "search_filters_icon",
+			search_placeholder = "achievement_search_prompt",
+			search_query = "",
+			text_index = 1,
+			hotspot = {
+				allow_multi_hover = true,
+			},
+			frame = frame_settings.texture,
+			glow = glow_settings.texture,
+			details = {
+				texture_id = "button_detail_04",
+				uvs = {
+					{
+						1,
+						0,
+					},
+					{
+						0,
+						1,
+					},
+				},
+			},
+			search_filters_hotspot = {},
+			clear_hotspot = {},
+		},
+		style = {
+			bg_texture = {
+				color = {
+					255,
+					200,
+					200,
+					200,
+				},
+				offset = {
+					0,
+					0,
+					0,
+				},
+			},
+			frame = {
+				texture_size = frame_settings.texture_size,
+				texture_sizes = frame_settings.texture_sizes,
+				offset = {
+					0,
+					0,
+					2,
+				},
+				color = {
+					255,
+					255,
+					255,
+					255,
+				},
+			},
+			detail_left = {
+				horizontal_alignment = "left",
+				offset = {
+					-34,
+					0,
+					3,
+				},
+				texture_size = {
+					60,
+					42,
+				},
+			},
+			detail_right = {
+				horizontal_alignment = "right",
+				offset = {
+					34,
+					0,
+					3,
+				},
+				texture_size = {
+					60,
+					42,
+				},
+			},
+			glow = {
+				frame_margins = {
+					-glow_width,
+					-glow_width,
+				},
+				texture_size = glow_settings.texture_size,
+				texture_sizes = glow_settings.texture_sizes,
+				offset = {
+					0,
+					0,
+					3,
+				},
+				color = {
+					255,
+					255,
+					255,
+					255,
+				},
+			},
+			search_placeholder = {
+				dynamic_font = true,
+				font_size = 25,
+				font_type = "hell_shark_header",
+				horizontal_alignment = "left",
+				localize = true,
+				pixel_perfect = true,
+				vertical_alignment = "center",
+				text_color = {
+					255,
+					25,
+					25,
+					25,
+				},
+				offset = {
+					47,
+					-3,
+					5,
+				},
+			},
+			search_query = {
+				dynamic_font = true,
+				font_size = 25,
+				font_type = "hell_shark_header",
+				horizontal_alignment = "left",
+				horizontal_scroll = true,
+				pixel_perfect = true,
+				vertical_alignment = "center",
+				word_wrap = false,
+				text_color = Colors.get_table("black"),
+				offset = {
+					47,
+					13,
+					3,
+				},
+				caret_size = {
+					2,
+					26,
+				},
+				caret_offset = {
+					0,
+					-6,
+					6,
+				},
+				caret_color = Colors.get_table("black"),
+				size = {
+					size[1] - 90,
+					size[2],
+				},
+			},
+			search_filters_hotspot = {
+				horizontal_alignment = "left",
+				vertical_alignment = "center",
+				area_size = {
+					96,
+					96,
+				},
+				offset = {
+					-42,
+					28,
+					7,
+				},
+			},
+			search_filters_bg = {
+				horizontal_alignment = "left",
+				vertical_alignment = "center",
+				color = {
+					255,
+					255,
+					255,
+					255,
+				},
+				texture_size = {
+					128,
+					128,
+				},
+				offset = {
+					-80,
+					-4,
+					8,
+				},
+			},
+			search_filters_icon = {
+				horizontal_alignment = "left",
+				vertical_alignment = "center",
+				color = Colors.get_color_table_with_alpha("white", 255),
+				texture_size = {
+					128,
+					128,
+				},
+				offset = {
+					-80,
+					-4,
+					8,
+				},
+			},
+			search_filters_glow = {
+				horizontal_alignment = "left",
+				vertical_alignment = "center",
+				color = Colors.get_color_table_with_alpha("font_title", 255),
+				texture_size = {
+					128,
+					128,
+				},
+				offset = {
+					-80,
+					-4,
+					9,
+				},
+			},
+			clear_icon = {
+				horizontal_alignment = "right",
+				vertical_alignment = "center",
+				color = {
+					255,
+					80,
+					80,
+					80,
+				},
+				texture_size = {
+					32,
+					32,
+				},
+				area_size = {
+					32,
+					32,
+				},
+				offset = {
+					-15,
+					0,
+					7,
+				},
+			},
+			help_tooltip = {
+				cursor_side = "right",
+				draw_downwards = true,
+				font_size = 18,
+				font_type = "hell_shark",
+				horizontal_alignment = "left",
+				localize = false,
+				max_width = 1500,
+				vertical_alignment = "center",
+				text_color = Colors.get_table("white"),
+				line_colors = {
+					Colors.get_table("orange_red"),
+				},
+				cursor_offset = {
+					0,
+					30,
+				},
+				offset = {
+					0,
+					0,
+					50,
+				},
+				area_size = {
+					45,
+					45,
+				},
+			},
+		},
+	}
+end
+
 return DPWidgetUtils

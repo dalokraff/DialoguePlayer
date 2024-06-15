@@ -1,3 +1,5 @@
+local DPWidgetUtils = local_require("scripts/mods/DialoguePlayer/DP_widget_utils")
+
 local disable_with_gamepad = true
 local info_window_size = {
 	-- 450,
@@ -320,6 +322,21 @@ local scenegraph_definition = {
 		}
 	},
 
+	search_input = {
+		horizontal_alignment = "center",
+		parent = "info_window_left_side",
+		vertical_alignment = "top",
+		size = {
+			850,
+			42,
+		},
+		position = {
+			280,
+			-174,
+			50,
+		},
+	},
+
 }
 
 local title_text_style = {
@@ -406,6 +423,10 @@ local widgets_definitions = {
     -- info_window_left_title_text = UIWidgets.create_simple_text("mission_reward", "info_window_left_title_text", nil, nil, info_window_title_text_style)
 }
 
+local search_widget_definitions = {
+	input = DPWidgetUtils.create_search_input_widget("search_input", scenegraph_definition["search_input"].size),
+}
+
 local animation_definitions = {
 	on_enter = {
 		{
@@ -433,4 +454,5 @@ return {
 	scenegraph_definition = scenegraph_definition,
 	widgets = widgets_definitions,
 	animation_definitions = animation_definitions,
+	search_widget_definitions = search_widget_definitions,
 }
